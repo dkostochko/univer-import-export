@@ -112,5 +112,6 @@
     "commitizen": {
       "path": "cz-conventional-changelog"
     }
-  }
+  },
+  "files": ["dist", "LICENSE" ,"README.md"]
 }
