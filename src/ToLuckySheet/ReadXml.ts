@@ -1,7 +1,7 @@
 import {IuploadfileList, IattributeList, stringToNum} from "../ICommon";
 import {indexedColors}  from "../common/constant";
 import {LightenDarkenColor}  from "../common/method";
-import { debug } from "../utils/debug";
+import { debug, saveLog } from "../utils/debug";
 
 
 class xmloperation {
@@ -37,7 +37,7 @@ class xmloperation {
         const isLargeFile = escapedFile.length > 200000;
 
         if(isLargeFile) {
-            console.log(`[XML] Large file detected (${escapedFile.length} chars) for tag "${tag}", processing in chunks`);
+            saveLog('log', [`[XML] Large file detected (${escapedFile.length} chars) for tag "${tag}", processing in chunks`], true);
 
             // For very large files, use a different approach to avoid regex catastrophic backtracking
             // Instead of regex, use a simpler string search approach
@@ -333,7 +333,7 @@ export class Element extends xmloperation {
 
             // For very large strings, process more carefully to avoid heap exhaustion
             if (str.length > 50000) {
-                console.log(`[XML setValue] Large string detected (${str.length} chars), using safe parsing`);
+                saveLog('log', [`[XML setValue] Large string detected (${str.length} chars), using safe parsing`], true);
                 // Instead of changing logic, just limit the regex scope
                 // Find the closing tag position first to limit regex range
                 const closeTag = "</" + firstTag + ">";

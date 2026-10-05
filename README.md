@@ -43,6 +43,39 @@ yarn add @mertdeveci55/univer-import-export
 
 ## Usage
 
+### Configure logging
+
+The library writes logs to the console by default. Set a global adapter to route log events to your application's logger, file writer, or another destination:
+
+```typescript
+import LuckyExcel, { type LogEvent } from '@mertdeveci55/univer-import-export';
+
+const sendToApplicationLogger = (event: LogEvent) => {
+    // event.level: 'log' | 'info' | 'warn' | 'error' | 'debug'
+    // event.scope: normalized tag such as 'package' or 'xml', or undefined
+    // event.args: message arguments with the [SCOPE] tag removed from the first string
+    // event.timestamp: milliseconds since the Unix epoch
+    myLogger.write(event);
+};
+
+LuckyExcel.setLogAdapter(sendToApplicationLogger);
+
+// Restore console output when the custom adapter is no longer needed.
+LuckyExcel.resetLogAdapter();
+```
+
+The existing debug filter still applies to `log`, `info`, `warn`, and `debug` calls; `error` calls are always sent. Direct diagnostic messages also go through the adapter without changing their existing filter behavior. If an adapter throws, the library reports that failure to `console.error` and continues processing.
+
+Scopes currently used in log messages include:
+
+- **Import and parsing:** `package`, `zip`, `xml`, `xml setvalue`, `luckyfile`, `sharedformula`
+- **Univer conversion:** `univertoluckysheet`, `univerworkbook`, `workbook`
+- **Excel export:** `export`, `postprocessor`, `formulacleaner`, `formula`, `arrayformula`, `chartexporter`, `sheetname`
+- **Export resources:** `resources`, `filter`, `conditionalformat`, `datavalidation`, `comments`
+- **General diagnostics:** `debug`
+
+Scope values are derived from the `[SCOPE]` tag, converted to lowercase, and delivered separately from `args`. For example, `[LuckyFile]` becomes `scope: 'luckyfile'`; the tag itself is removed from the first message argument. Untagged messages have `scope: undefined`.
+
 ### Import Excel to Univer
 
 ```javascript

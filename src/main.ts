@@ -3,7 +3,8 @@ import { LuckyFile } from "./ToLuckySheet/LuckyFile";
 
 import { HandleZip } from './HandleZip';
 import { HandleXls } from './HandleXls';
-import { debug } from './utils/debug';
+import { debug, resetLogAdapter, saveLog, setLogAdapter } from './utils/debug';
+import type { LogAdapter } from './utils/debug';
 
 import { IuploadfileList } from "./ICommon";
 
@@ -16,8 +17,18 @@ import { UniverWorkBook } from "./LuckyToUniver/UniverWorkBook";
 import type { IWorkbookData } from "@univerjs/core";
 import { formatSheetData, getDataByFile } from "./common/utils";
 import { UniverCsvWorkBook } from "./LuckyToUniver/UniverCsvWorkBook";
+export type { LogAdapter, LogEvent, LogLevel } from './utils/debug';
 export class LuckyExcel {
     constructor() { }
+
+    static setLogAdapter(adapter: LogAdapter): void {
+        setLogAdapter(adapter);
+    }
+
+    static resetLogAdapter(): void {
+        resetLogAdapter();
+    }
+
     static transformExcelToLucky(excelFile: File,
         callback?: (files: IuploadfileList, fs?: string) => void,
         errorHandler?: (err: Error) => void) {
@@ -92,11 +103,11 @@ export class LuckyExcel {
                         let exportJson = JSON.parse(luckysheetfile);
                         
                         if (callback != undefined) {
-                            console.log('[PACKAGE] About to create UniverWorkBook...');
+                            saveLog('log', ['[PACKAGE] About to create UniverWorkBook...'], true);
                             const univerData = new UniverWorkBook(exportJson);
-                            console.log('[PACKAGE] UniverWorkBook created successfully');
+                            saveLog('log', ['[PACKAGE] UniverWorkBook created successfully'], true);
                             callback(univerData.mode, luckysheetfile);
-                            console.log('[PACKAGE] Callback invoked successfully');
+                            saveLog('log', ['[PACKAGE] Callback invoked successfully'], true);
                         }
                         resolveMain();
                     } catch (err) {

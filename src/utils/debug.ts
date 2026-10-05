@@ -21,38 +21,85 @@ const isDebugEnabled = (): boolean => {
   return false;
 };
 
-const noop = () => {};
+export type LogLevel = 'log' | 'info' | 'warn' | 'error' | 'debug';
 
-// Create safe wrappers that always work
-const safeLog = (...args: any[]) => {
-  if (isDebugEnabled() && console.log) {
-    console.log(...args);
+export interface LogEvent {
+  level: LogLevel;
+  scope?: string;
+  args: unknown[];
+  timestamp: number;
+}
+
+export type LogAdapter = (event: LogEvent) => void;
+
+const defaultLogAdapter: LogAdapter = ({ level, args }) => {
+  const output = console[level] || console.log;
+  if (output) {
+    output.apply(console, args);
   }
 };
 
-const safeWarn = (...args: any[]) => {
-  if (isDebugEnabled() && console.warn) {
-    console.warn(...args);
+let logAdapter: LogAdapter = defaultLogAdapter;
+
+export const setLogAdapter = (adapter: LogAdapter): void => {
+  if (typeof adapter !== 'function') {
+    throw new TypeError('Log adapter must be a function');
+  }
+  logAdapter = adapter;
+};
+
+export const resetLogAdapter = (): void => {
+  logAdapter = defaultLogAdapter;
+};
+
+const getScopeAndMessage = (args: unknown[]): { scope?: string; args: unknown[] } => {
+  const firstArgument = args[0];
+  if (typeof firstArgument !== 'string') {
+    return { args };
+  }
+
+  const match = firstArgument.match(/^([\s\p{P}\p{S}]*?)\[([^\]]+)\]\s*/u);
+  if (!match) {
+    return { args };
+  }
+
+  const messageArgs = args.slice();
+  messageArgs[0] = `${match[1]}${firstArgument.slice(match[0].length)}`;
+  return {
+    scope: match[2].trim().toLowerCase() || undefined,
+    args: messageArgs,
+  };
+};
+
+export const saveLog = (level: LogLevel, args: unknown[], force = false): void => {
+  if (!force && level !== 'error' && !isDebugEnabled()) {
+    return;
+  }
+
+  const { scope, args: messageArgs } = getScopeAndMessage(args);
+  const event: LogEvent = {
+    level,
+    scope,
+    args: messageArgs,
+    timestamp: Date.now(),
+  };
+
+  try {
+    logAdapter(event);
+  } catch (error) {
+    try {
+      console.error('[univer-import-export] Log adapter failed:', error);
+    } catch {
+      // Logging failures must not interrupt spreadsheet processing.
+    }
   }
 };
 
-const safeError = (...args: any[]) => {
-  if (console.error) {
-    console.error(...args);
-  }
-};
-
-const safeInfo = (...args: any[]) => {
-  if (isDebugEnabled() && console.info) {
-    console.info(...args);
-  }
-};
-
-const safeDebug = (...args: any[]) => {
-  if (isDebugEnabled() && console.debug) {
-    console.debug(...args);
-  }
-};
+const safeLog = (...args: unknown[]) => saveLog('log', args);
+const safeWarn = (...args: unknown[]) => saveLog('warn', args);
+const safeError = (...args: unknown[]) => saveLog('error', args);
+const safeInfo = (...args: unknown[]) => saveLog('info', args);
+const safeDebug = (...args: unknown[]) => saveLog('debug', args);
 
 export const debug = {
   log: safeLog,
